@@ -32,18 +32,28 @@ try {
     # Extract percentages - handle array values
     $session5hHeader = $response.Headers["anthropic-ratelimit-unified-5h-utilization"]
     $weekly7dHeader = $response.Headers["anthropic-ratelimit-unified-7d-utilization"]
-    $session5h = if ($session5hHeader) {
-        [math]::Round([float]($session5hHeader -is [array] ? $session5hHeader[0] : $session5hHeader) * 100, 1)
-    } else { 0 }
-    $weekly7d = if ($weekly7dHeader) {
-        [math]::Round([float]($weekly7dHeader -is [array] ? $weekly7dHeader[0] : $weekly7dHeader) * 100, 1)
-    } else { 0 }
+
+    if ($session5hHeader) {
+        $session5hValue = if ($session5hHeader -is [array]) { $session5hHeader[0] } else { $session5hHeader }
+        $session5h = [math]::Round([float]$session5hValue * 100, 1)
+    } else {
+        $session5h = 0
+    }
+
+    if ($weekly7dHeader) {
+        $weekly7dValue = if ($weekly7dHeader -is [array]) { $weekly7dHeader[0] } else { $weekly7dHeader }
+        $weekly7d = [math]::Round([float]$weekly7dValue * 100, 1)
+    } else {
+        $weekly7d = 0
+    }
 
     # Extract reset timestamps (Unix epoch) - handle array values
     $session5hResetHeader = $response.Headers["anthropic-ratelimit-unified-5h-reset"]
     $weekly7dResetHeader = $response.Headers["anthropic-ratelimit-unified-7d-reset"]
-    $session5hResetUnix = [int]($session5hResetHeader -is [array] ? $session5hResetHeader[0] : $session5hResetHeader)
-    $weekly7dResetUnix = [int]($weekly7dResetHeader -is [array] ? $weekly7dResetHeader[0] : $weekly7dResetHeader)
+    $session5hResetValue = if ($session5hResetHeader -is [array]) { $session5hResetHeader[0] } else { $session5hResetHeader }
+    $weekly7dResetValue = if ($weekly7dResetHeader -is [array]) { $weekly7dResetHeader[0] } else { $weekly7dResetHeader }
+    $session5hResetUnix = [int]$session5hResetValue
+    $weekly7dResetUnix = [int]$weekly7dResetValue
 
     # Calculate time remaining
     $now = [int][double]::Parse((Get-Date -UFormat %s))
