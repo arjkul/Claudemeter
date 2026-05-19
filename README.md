@@ -2,7 +2,7 @@
 
 A minimal Rainmeter skin that displays your Claude API usage in real-time.
 
-## <img width="269" height="88" alt="image" src="https://github.com/user-attachments/assets/c797ceef-edff-4148-94a4-8cb3a56c7fe5" />
+## <img width="501" height="134" alt="image" src="https://github.com/user-attachments/assets/ce07718b-c94c-4dad-bd81-ceec35bb9e58" />
 
 
 ## Features
