@@ -1,8 +1,7 @@
-# UpdateUsage.ps1 - Fetch Claude usage via OAuth token and save to file
+# UpdateUsage.ps1 - Fetch Claude usage via OAuth token and save usage data
 # Run this every 60 seconds via Windows Task Scheduler
 
 $credPath = "$env:USERPROFILE\.claude\.credentials.json"
-$outputFile = "$PSScriptRoot\UsageData.txt"
 
 try {
     # Read OAuth token
@@ -30,25 +29,54 @@ try {
         -Body $body `
         -UseBasicParsing
 
-    # Extract rate-limit headers
-    $session5h = if ($response.Headers["anthropic-ratelimit-unified-5h-utilization"]) {
-        [math]::Round([float]$response.Headers["anthropic-ratelimit-unified-5h-utilization"] * 100, 1)
+    # Extract percentages - handle array values
+    $session5hHeader = $response.Headers["anthropic-ratelimit-unified-5h-utilization"]
+    $weekly7dHeader = $response.Headers["anthropic-ratelimit-unified-7d-utilization"]
+    $session5h = if ($session5hHeader) {
+        [math]::Round([float]($session5hHeader -is [array] ? $session5hHeader[0] : $session5hHeader) * 100, 1)
+    } else { 0 }
+    $weekly7d = if ($weekly7dHeader) {
+        [math]::Round([float]($weekly7dHeader -is [array] ? $weekly7dHeader[0] : $weekly7dHeader) * 100, 1)
     } else { 0 }
 
-    $weekly7d = if ($response.Headers["anthropic-ratelimit-unified-7d-utilization"]) {
-        [math]::Round([float]$response.Headers["anthropic-ratelimit-unified-7d-utilization"] * 100, 1)
-    } else { 0 }
+    # Extract reset timestamps (Unix epoch) - handle array values
+    $session5hResetHeader = $response.Headers["anthropic-ratelimit-unified-5h-reset"]
+    $weekly7dResetHeader = $response.Headers["anthropic-ratelimit-unified-7d-reset"]
+    $session5hResetUnix = [int]($session5hResetHeader -is [array] ? $session5hResetHeader[0] : $session5hResetHeader)
+    $weekly7dResetUnix = [int]($weekly7dResetHeader -is [array] ? $weekly7dResetHeader[0] : $weekly7dResetHeader)
 
-    # Write to separate files for each value
+    # Calculate time remaining
+    $now = [int][double]::Parse((Get-Date -UFormat %s))
+    $session5hRemaining = $session5hResetUnix - $now
+    $weekly7dRemaining = $weekly7dResetUnix - $now
+
+    # Format "resets in" text (compact format)
+    $session5hResetsIn = if ($session5hRemaining -gt 0) {
+        $hours = [math]::Floor($session5hRemaining / 3600)
+        $minutes = [math]::Floor(($session5hRemaining % 3600) / 60)
+        if ($hours -gt 0) { "$($hours)h$($minutes)m" } else { "$($minutes)m" }
+    } else { "0m" }
+
+    $weekly7dResetsIn = if ($weekly7dRemaining -gt 0) {
+        $days = [math]::Floor($weekly7dRemaining / 86400)
+        $hours = [math]::Floor(($weekly7dRemaining % 86400) / 3600)
+        if ($days -gt 0) { "$($days)d$($hours)h" } else { "$($hours)h" }
+    } else { "0h" }
+
+    # Format reset time (as wall-clock and calendar)
+    $session5hResetTime = ([datetime]::UnixEpoch.AddSeconds($session5hResetUnix).ToLocalTime()).ToString("h:mm tt")
+    $weekly7dResetTime = ([datetime]::UnixEpoch.AddSeconds($weekly7dResetUnix).ToLocalTime()).ToString("ddd MMM d")
+
+    # Write data files
     $baseDir = "$PSScriptRoot"
     "$session5h" | Out-File -FilePath "$baseDir\Session5h.txt" -Encoding UTF8 -NoNewline
     "$weekly7d" | Out-File -FilePath "$baseDir\Weekly7d.txt" -Encoding UTF8 -NoNewline
+    "$session5hResetsIn" | Out-File -FilePath "$baseDir\Session5hResetsIn.txt" -Encoding UTF8 -NoNewline
+    "$weekly7dResetsIn" | Out-File -FilePath "$baseDir\Weekly7dResetsIn.txt" -Encoding UTF8 -NoNewline
+    "$session5hResetTime" | Out-File -FilePath "$baseDir\Session5hResetTime.txt" -Encoding UTF8 -NoNewline
+    "$weekly7dResetTime" | Out-File -FilePath "$baseDir\Weekly7dResetTime.txt" -Encoding UTF8 -NoNewline
 
-    # Also write to .inc file that Rainmeter can include directly
-    $incContent = "[Variables]`nSession5hValue=$session5h`nWeekly7dValue=$weekly7d"
-    $incContent | Out-File -FilePath "$baseDir\UsageVars.inc" -Encoding UTF8 -NoNewline
-
-    # Refresh the Rainmeter skin to reload variables
+    # Refresh the Rainmeter skin
     $rainmeterPath = "C:\Program Files\Rainmeter\Rainmeter.exe"
     if (Test-Path $rainmeterPath) {
         & $rainmeterPath '!Refresh' '"ClaudeMeter"'
@@ -57,6 +85,5 @@ try {
     exit 0
 }
 catch {
-    "0|0" | Out-File -FilePath $outputFile -Encoding UTF8 -NoNewline
     exit 1
 }
