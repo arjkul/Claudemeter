@@ -2,6 +2,9 @@
 
 A minimal Rainmeter skin that displays your Claude API usage in real-time.
 
+## <img width="269" height="88" alt="image" src="https://github.com/user-attachments/assets/c797ceef-edff-4148-94a4-8cb3a56c7fe5" />
+
+
 ## Features
 
 - **5-hour usage limit** - Track your rolling 5-hour API usage
