@@ -1,0 +1,13 @@
+# Credentials - Never commit OAuth tokens
+Credentials.inc
+
+# Data files - These are generated/updated automatically
+Session5h.txt
+Weekly7d.txt
+
+# Local settings
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
