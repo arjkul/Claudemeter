@@ -89,11 +89,16 @@ try {
     # Refresh the Rainmeter skin
     $rainmeterPath = "C:\Program Files\Rainmeter\Rainmeter.exe"
     if (Test-Path $rainmeterPath) {
-        & $rainmeterPath '!Refresh' '"ClaudeMeter"'
+        try {
+            & $rainmeterPath '!Refresh' '"ClaudeMeter"' -ErrorAction Stop
+        } catch {
+            Write-Warning "Failed to refresh Rainmeter, but data was written successfully"
+        }
     }
 
     exit 0
 }
 catch {
+    Write-Error $_
     exit 1
 }
