@@ -2,8 +2,7 @@
 Credentials.inc
 
 # Data files - These are generated/updated automatically
-Session5h.txt
-Weekly7d.txt
+@Resources/*.txt
 
 # Local settings
 .claude/
